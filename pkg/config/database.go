@@ -2,15 +2,16 @@ package config
 
 import (
 	"database/sql"
+	"fmt"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
 
 func Connect() {
-	// TODO: Replace with environment variables
 	var err error
-	db, err = sql.Open("mysql", "root:123456@(localhost:3306)/gomysql?parseTime=true")
+	db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true", DBUser, DBPass, DBHost, DBPort, DBName))
 	if err != nil {
 		panic(err)
 	}
@@ -25,7 +26,6 @@ func GetDB() *sql.DB {
 	return db
 }
 
-// TODO: Is it needed?
 func InitUsersTable(db *sql.DB) (sql.Result, error) {
 	query := `
 	CREATE TABLE users (
