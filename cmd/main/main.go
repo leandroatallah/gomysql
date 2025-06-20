@@ -11,6 +11,6 @@ import (
 func main() {
 	r := mux.NewRouter()
 	routes.RegisterRoutes(r)
-	http.Handle("/", r) // Is it needed?
+	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":3333", r))
 }

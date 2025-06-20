@@ -64,31 +64,32 @@ func GetUserByUsername(username string) (User, error) {
 	return u, nil
 }
 
-func CreateUser(u User) (int64, error) {
+func CreateUser(u User) (User, error) {
 	rows, err := db.Query(`SELECT id FROM users WHERE username = ?`, u.Username)
 	var exists bool
 	for rows.Next() {
 		exists = true
 	}
 	if err != nil {
-		return 0, err
+		return User{}, err
 	}
 	if exists {
-		// TODO: Improve this code
-		return 0, nil
+		return User{}, nil
 	}
 
 	createdAt := time.Now()
 	query := "INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)"
 	result, err := db.Exec(query, u.Username, u.Password, createdAt)
 	if err != nil {
-		return 0, err
+		return User{}, err
 	}
 	userID, err := result.LastInsertId()
 	if err != nil {
-		return 0, err
+		return User{}, err
 	}
-	return userID, nil
+	u.Id = int(userID)
+	u.CreatedAt = createdAt
+	return u, nil
 }
 
 func DeleteUser(userID int) (User, error) {
@@ -102,4 +103,13 @@ func DeleteUser(userID int) (User, error) {
 		return User{}, err
 	}
 	return found, nil
+}
+
+func UpdateUser(u User) (User, error) {
+	query := `UPDATE users SET uername = ?, password = ? WHERE id = ?`
+	_, err := db.Exec(query, u.Username, u.Password, u.Id)
+	if err != nil {
+		return User{}, err
+	}
+	return u, nil
 }
