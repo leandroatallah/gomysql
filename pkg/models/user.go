@@ -143,7 +143,7 @@ func UpdateUser(u User) (User, error) {
 	if err := u.isValid(); err != nil {
 		return User{}, err
 	}
-	query := `UPDATE users SET uername = ?, password = ? WHERE id = ?`
+	query := `UPDATE users SET username = ?, password = ? WHERE id = ?`
 	_, err := db.Exec(query, u.Username, u.Password, u.Id)
 	if err != nil {
 		return User{}, err
