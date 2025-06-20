@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -9,14 +10,24 @@ import (
 	"github.com/leandroatallah/gomysql/pkg/models"
 )
 
+func HTTPInternalServerError(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("[ERROR] %s %s: %v", r.Method, r.URL.Path, err)
+	http.Error(w, "Internal server error", http.StatusInternalServerError)
+}
+
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := models.GetAllUsers()
 	if err != nil {
-		panic(err)
+		HTTPInternalServerError(w, r, err)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(users)
+	var res []models.UserResponse
+	for _, u := range users {
+		res = append(res, models.UserToUserResponse(u))
+	}
+	json.NewEncoder(w).Encode(res)
 
 }
 
@@ -26,21 +37,23 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&userPayload)
 	user, err := models.CreateUser(userPayload)
 	if err != nil {
-		panic(err)
+		HTTPInternalServerError(w, r, err)
+		return
 	}
 	if user.Id == 0 {
 		w.WriteHeader(http.StatusConflict)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(models.UserToUserResponse(user))
 }
 
 func GetUserById(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		panic(err)
+		HTTPInternalServerError(w, r, err)
+		return
 	}
 	user, err := models.GetUserById(userID)
 	w.Header().Set("Content-Type", "application/json")
@@ -49,14 +62,15 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(models.UserToUserResponse(user))
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		panic(err)
+		HTTPInternalServerError(w, r, err)
+		return
 	}
 	user, err := models.DeleteUser(userID)
 	w.Header().Set("Content-Type", "application/json")
@@ -65,7 +79,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(models.UserToUserResponse(user))
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -73,14 +87,12 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(err)
+		HTTPInternalServerError(w, r, err)
 		return
 	}
 	found, err := models.GetUserById(userID)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(err)
 		return
 	}
 	var userPayload models.User
@@ -89,10 +101,9 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	found.Password = userPayload.Password
 	user, err := models.UpdateUser(found)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(err)
+		HTTPInternalServerError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(models.UserToUserResponse(user))
 }
