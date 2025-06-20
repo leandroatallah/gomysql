@@ -2,10 +2,19 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/leandroatallah/gomysql/pkg/config"
+	"github.com/leandroatallah/gomysql/pkg/utils"
 )
+
+var db *sql.DB
+
+func init() {
+	config.Connect()
+	db = config.GetDB()
+}
 
 type User struct {
 	Id        int       `json:"id"`
@@ -14,11 +23,29 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-var db *sql.DB
+func (u *User) isValid() error {
+	if u.Id <= 0 {
+		return errors.New("Invalid ID")
+	}
+	if len(u.Username) < 8 {
+		return errors.New("Username length must be greater than or equal to 8")
+	}
+	if len(u.Password) < 6 {
+		return errors.New("Password length must be greater than or equal to 6")
+	}
+	return nil
+}
 
-func init() {
-	config.Connect()
-	db = config.GetDB()
+type UserResponse struct {
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func UserToUserResponse(user User) UserResponse {
+	var userRes UserResponse
+	userRes.Username = user.Username
+	userRes.CreatedAt = user.CreatedAt
+	return userRes
 }
 
 func GetAllUsers() ([]User, error) {
@@ -65,6 +92,9 @@ func GetUserByUsername(username string) (User, error) {
 }
 
 func CreateUser(u User) (User, error) {
+	if err := u.isValid(); err != nil {
+		return User{}, err
+	}
 	rows, err := db.Query(`SELECT id FROM users WHERE username = ?`, u.Username)
 	var exists bool
 	for rows.Next() {
@@ -78,8 +108,12 @@ func CreateUser(u User) (User, error) {
 	}
 
 	createdAt := time.Now()
+	passwordHash, err := utils.HashPassword(u.Password)
+	if err != nil {
+		return User{}, err
+	}
 	query := "INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)"
-	result, err := db.Exec(query, u.Username, u.Password, createdAt)
+	result, err := db.Exec(query, u.Username, passwordHash, createdAt)
 	if err != nil {
 		return User{}, err
 	}
@@ -106,6 +140,9 @@ func DeleteUser(userID int) (User, error) {
 }
 
 func UpdateUser(u User) (User, error) {
+	if err := u.isValid(); err != nil {
+		return User{}, err
+	}
 	query := `UPDATE users SET uername = ?, password = ? WHERE id = ?`
 	_, err := db.Exec(query, u.Username, u.Password, u.Id)
 	if err != nil {

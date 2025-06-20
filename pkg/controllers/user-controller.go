@@ -28,7 +28,6 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		res = append(res, models.UserToUserResponse(u))
 	}
 	json.NewEncoder(w).Encode(res)
-
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
