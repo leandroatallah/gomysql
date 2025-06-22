@@ -24,7 +24,7 @@ type User struct {
 }
 
 func (u *User) isValid() error {
-	if u.Id <= 0 {
+	if u.Id < 0 {
 		return errors.New("Invalid ID")
 	}
 	if len(u.Username) < 8 {
@@ -92,9 +92,6 @@ func GetUserByUsername(username string) (User, error) {
 }
 
 func CreateUser(u User) (User, error) {
-	if err := u.isValid(); err != nil {
-		return User{}, err
-	}
 	rows, err := db.Query(`SELECT id FROM users WHERE username = ?`, u.Username)
 	var exists bool
 	for rows.Next() {
@@ -112,8 +109,13 @@ func CreateUser(u User) (User, error) {
 	if err != nil {
 		return User{}, err
 	}
+	u.CreatedAt = createdAt
+	u.Password = passwordHash
+	if err := u.isValid(); err != nil {
+		return User{}, err
+	}
 	query := "INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)"
-	result, err := db.Exec(query, u.Username, passwordHash, createdAt)
+	result, err := db.Exec(query, u.Username, u.Password, u.CreatedAt)
 	if err != nil {
 		return User{}, err
 	}

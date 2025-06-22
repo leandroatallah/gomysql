@@ -14,7 +14,7 @@ var db *sql.DB
 
 func Connect() {
 	var err error
-	db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@(%s:%s)/%s?multiStatements=true", DBUser, DBPass, DBHost, DBPort, DBName))
+	db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true&multiStatements=true", DBUser, DBPass, DBHost, DBPort, DBName))
 	if err != nil {
 		panic(err)
 	}

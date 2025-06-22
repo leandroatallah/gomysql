@@ -11,6 +11,8 @@ import (
 
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
+const maxBodySize = 1 << 20 // 1MB
+
 func Logging() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +35,15 @@ func Method(m string) Middleware {
 	}
 }
 
+func LimitBodySize() Middleware {
+	return func(f http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+			f(w, r)
+		}
+	}
+}
+
 func Chain(f http.HandlerFunc, middleware ...Middleware) http.HandlerFunc {
 	for _, m := range middleware {
 		f = m(f)
@@ -41,9 +52,9 @@ func Chain(f http.HandlerFunc, middleware ...Middleware) http.HandlerFunc {
 }
 
 var RegisterRoutes = func(r *mux.Router) {
-	r.HandleFunc("/users", Chain(controllers.GetAllUsers, Method("GET"), Logging()))
-	r.HandleFunc("/users", Chain(controllers.CreateUser, Method("POST"), Logging()))
-	r.HandleFunc("/users/{id}", Chain(controllers.GetUserById, Method("GET"), Logging()))
-	r.HandleFunc("/users/{id}", Chain(controllers.DeleteUser, Method("DELETE"), Logging()))
-	r.HandleFunc("/users/{id}", Chain(controllers.UpdateUser, Method("PUT"), Logging()))
+	r.HandleFunc("/users", Chain(controllers.GetAllUsers, Method("GET"), LimitBodySize(), Logging())).Methods("GET")
+	r.HandleFunc("/users", Chain(controllers.CreateUser, Method("POST"), LimitBodySize(), Logging())).Methods("POST")
+	r.HandleFunc("/users/{id}", Chain(controllers.GetUserById, Method("GET"), LimitBodySize(), Logging())).Methods("GET")
+	r.HandleFunc("/users/{id}", Chain(controllers.DeleteUser, Method("DELETE"), LimitBodySize(), Logging())).Methods("DELETE")
+	r.HandleFunc("/users/{id}", Chain(controllers.UpdateUser, Method("PUT"), LimitBodySize(), Logging())).Methods("PUT")
 }

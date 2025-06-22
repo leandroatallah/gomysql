@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -11,7 +11,7 @@ import (
 )
 
 func HTTPInternalServerError(w http.ResponseWriter, r *http.Request, err error) {
-	log.Printf("[ERROR] %s %s: %v", r.Method, r.URL.Path, err)
+	fmt.Printf("[ERROR] %s %s: %v\n", r.Method, r.URL.Path, err)
 	http.Error(w, "Internal server error", http.StatusInternalServerError)
 }
 
@@ -23,11 +23,7 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	var res []models.UserResponse
-	for _, u := range users {
-		res = append(res, models.UserToUserResponse(u))
-	}
-	json.NewEncoder(w).Encode(res)
+	json.NewEncoder(w).Encode(users)
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
