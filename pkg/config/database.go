@@ -10,11 +10,23 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-var db *sql.DB
+const (
+	sourceURL    = "file://migrations"
+	dbIdentifier = "mysql"
+)
 
-func Connect() {
-	var err error
-	db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true&multiStatements=true", DBUser, DBPass, DBHost, DBPort, DBName))
+func Connect() *sql.DB {
+	dbConfig := NewDBConfig()
+
+	var (
+		db  *sql.DB
+		err error
+	)
+	db, err = sql.Open("mysql",
+		fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true&multiStatements=true",
+			dbConfig.user, dbConfig.pass, dbConfig.host, dbConfig.port, dbConfig.name,
+		),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -29,16 +41,14 @@ func Connect() {
 		panic(err)
 	}
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"mysql",
+		sourceURL,
+		dbIdentifier,
 		driver,
 	)
 	if err != nil {
 		panic(err)
 	}
 	m.Up()
-}
 
-func GetDB() *sql.DB {
 	return db
 }

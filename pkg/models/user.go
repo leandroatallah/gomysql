@@ -5,16 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/leandroatallah/gomysql/pkg/config"
 	"github.com/leandroatallah/gomysql/pkg/utils"
 )
-
-var db *sql.DB
-
-func init() {
-	config.Connect()
-	db = config.GetDB()
-}
 
 type User struct {
 	Id        int       `json:"id"`
@@ -36,21 +28,13 @@ func (u *User) isValid() error {
 	return nil
 }
 
-type UserResponse struct {
-	Username  string    `json:"username"`
-	CreatedAt time.Time `json:"created_at"`
+type UserModel struct {
+	DB *sql.DB
 }
 
-func UserToUserResponse(user User) UserResponse {
-	var userRes UserResponse
-	userRes.Username = user.Username
-	userRes.CreatedAt = user.CreatedAt
-	return userRes
-}
-
-func GetAllUsers() ([]User, error) {
+func (m *UserModel) GetAllUsers() ([]User, error) {
 	query := `SELECT id, username, password, created_at FROM users`
-	rows, err := db.Query(query)
+	rows, err := m.DB.Query(query)
 	defer rows.Close()
 	if err != nil {
 		return nil, err
@@ -71,28 +55,28 @@ func GetAllUsers() ([]User, error) {
 	return users, nil
 }
 
-func GetUserById(userId int) (User, error) {
+func (m *UserModel) GetUserById(userId int) (User, error) {
 	var u User
 	query := `SELECT id, username, password, created_at FROM users WHERE id = ?`
-	err := db.QueryRow(query, userId).Scan(&u.Id, &u.Username, &u.Password, &u.CreatedAt)
+	err := m.DB.QueryRow(query, userId).Scan(&u.Id, &u.Username, &u.Password, &u.CreatedAt)
 	if err != nil {
 		return User{}, err
 	}
 	return u, nil
 }
 
-func GetUserByUsername(username string) (User, error) {
+func (m *UserModel) GetUserByUsername(username string) (User, error) {
 	var u User
 	query := `SELECT id, username, password, created_at FROM users WHERE username = ?`
-	err := db.QueryRow(query, username).Scan(&u.Id, &u.Username, &u.Password, &u.CreatedAt)
+	err := m.DB.QueryRow(query, username).Scan(&u.Id, &u.Username, &u.Password, &u.CreatedAt)
 	if err != nil {
 		return User{}, err
 	}
 	return u, nil
 }
 
-func CreateUser(u User) (User, error) {
-	rows, err := db.Query(`SELECT id FROM users WHERE username = ?`, u.Username)
+func (m *UserModel) CreateUser(u User) (User, error) {
+	rows, err := m.DB.Query(`SELECT id FROM users WHERE username = ?`, u.Username)
 	var exists bool
 	for rows.Next() {
 		exists = true
@@ -115,7 +99,7 @@ func CreateUser(u User) (User, error) {
 		return User{}, err
 	}
 	query := "INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)"
-	result, err := db.Exec(query, u.Username, u.Password, u.CreatedAt)
+	result, err := m.DB.Exec(query, u.Username, u.Password, u.CreatedAt)
 	if err != nil {
 		return User{}, err
 	}
@@ -128,25 +112,26 @@ func CreateUser(u User) (User, error) {
 	return u, nil
 }
 
-func DeleteUser(userID int) (User, error) {
-	found, err := GetUserById(userID)
+func (m *UserModel) DeleteUser(userID int) (User, error) {
+	found, err := m.GetUserById(userID)
 	if err != nil {
 		return User{}, err
 	}
 	query := `DELETE FROM users WHERE id = ?`
-	_, err = db.Exec(query, userID)
+	_, err = m.DB.Exec(query, userID)
 	if err != nil {
 		return User{}, err
 	}
 	return found, nil
 }
 
-func UpdateUser(u User) (User, error) {
+// TODO: Change this funtion to accept a few user fields
+func (m *UserModel) UpdateUser(u User) (User, error) {
 	if err := u.isValid(); err != nil {
 		return User{}, err
 	}
 	query := `UPDATE users SET username = ?, password = ? WHERE id = ?`
-	_, err := db.Exec(query, u.Username, u.Password, u.Id)
+	_, err := m.DB.Exec(query, u.Username, u.Password, u.Id)
 	if err != nil {
 		return User{}, err
 	}

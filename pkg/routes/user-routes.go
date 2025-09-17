@@ -51,10 +51,10 @@ func Chain(f http.HandlerFunc, middleware ...Middleware) http.HandlerFunc {
 	return f
 }
 
-var RegisterRoutes = func(r *mux.Router) {
-	r.HandleFunc("/users", Chain(controllers.GetAllUsers, Method("GET"), LimitBodySize(), Logging())).Methods("GET")
-	r.HandleFunc("/users", Chain(controllers.CreateUser, Method("POST"), LimitBodySize(), Logging())).Methods("POST")
-	r.HandleFunc("/users/{id}", Chain(controllers.GetUserById, Method("GET"), LimitBodySize(), Logging())).Methods("GET")
-	r.HandleFunc("/users/{id}", Chain(controllers.DeleteUser, Method("DELETE"), LimitBodySize(), Logging())).Methods("DELETE")
-	r.HandleFunc("/users/{id}", Chain(controllers.UpdateUser, Method("PUT"), LimitBodySize(), Logging())).Methods("PUT")
+var RegisterRoutes = func(r *mux.Router, controller *controllers.UserController) {
+	r.HandleFunc("/users", Chain(controller.GetAllUsers, Method("GET"), LimitBodySize(), Logging())).Methods("GET")
+	r.HandleFunc("/users", Chain(controller.CreateUser, Method("POST"), LimitBodySize(), Logging())).Methods("POST")
+	r.HandleFunc("/users/{id}", Chain(controller.GetUserById, Method("GET"), LimitBodySize(), Logging())).Methods("GET")
+	r.HandleFunc("/users/{id}", Chain(controller.DeleteUser, Method("DELETE"), LimitBodySize(), Logging())).Methods("DELETE")
+	r.HandleFunc("/users/{id}", Chain(controller.UpdateUser, Method("PUT"), LimitBodySize(), Logging())).Methods("PUT")
 }
